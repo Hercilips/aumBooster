@@ -107,7 +107,7 @@ class aumBooster
         {
             try
             {
-                $this->crawler = $this->client->request('GET', 'http://chat.vty.adopteunmec.com/?userid=' . $this->userId . '&cookie=' . $this->sessionCookie . '&url=http%3A%2F%2Fwww.adopteunmec.com%2F');
+                $this->crawler = $this->client->request('GET', 'http://www.adopteunmec.com/messages/ajax_fetchGroups');
 
                 $chatLoaded = true;
             }
@@ -118,12 +118,18 @@ class aumBooster
             }
         }
 
-        $tabContacts = $this->crawler->filter('#contactGroups li a')->links();
-
+        $output = $this->client->getResponse()->getContent();
+        $contacts =json_decode($output);
         $contactIdsTab = array();
-        foreach($tabContacts as $contactLink)
-        {
-            $contactIdsTab[] = substr($contactLink->getUri(), 36);
+        
+        if(isset($contacts->groups)) {
+            foreach ($contacts->groups as $contactGroup) {
+                if(isset($contactGroup->contacts)) {
+                    foreach ($contactGroup->contacts as $contact) {
+                        $contactIdsTab[] = $contact->id;
+                    }
+                }
+            }
         }
 
         return $contactIdsTab;
@@ -145,7 +151,7 @@ class aumBooster
             return false;
         }
 
-        $this->contactIdsTab = $this->getContactIds();
+        $this->contactIdsTab = array(); //$this->getContactIds();
 
         /**
          * Click on that search link
@@ -235,7 +241,7 @@ class aumBooster
 
         try
         {
-            preg_match('/var members = (.*),/', $this->client->getResponse()->getContent(), $matches);
+            preg_match('/var members=({.*}),/', $this->client->getResponse()->getContent(), $matches);
             $res = json_decode($matches[1]);
             $users = $res->members;
         }
@@ -333,7 +339,7 @@ class aumBooster
                     }
                 }
 
-                preg_match('/var members = (.*),/', $this->client->getResponse()->getContent(), $matches);
+                preg_match('/var members=({.*}),/', $this->client->getResponse()->getContent(), $matches);
                 $res = json_decode($matches[1]);
                 if (empty($res->members)) // in case we reach the max of pages, so break and do again a research
                     break;
